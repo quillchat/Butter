@@ -15,9 +15,9 @@ class ToastView: UIView {
   private var tapGestureRecognizer: UITapGestureRecognizer!
   private var leadingItemStackView = UIStackView()
 
-  var onTap: (() -> Void)? = nil
+  var onTap: (() -> Void)?
 
-  var onProgressFinished: (() -> Void)? = nil
+  var onProgressFinished: (() -> Void)?
 
   init() {
     super.init(frame: .zero)
@@ -73,7 +73,6 @@ class ToastView: UIView {
         activityIndicatorView.isHidden = true
         circularProgressView.isHidden = false
         circularProgressView.observedProgress = progress
-        break
       }
     }
   }

@@ -7,7 +7,7 @@ class CircularProgressView: UIView {
   private var trackLayer = CAShapeLayer()
   private var progressLayer = CAShapeLayer()
 
-  var onFinished: (() -> Void)? = nil
+  var onFinished: (() -> Void)?
 
   required init?(coder: NSCoder) {
     super.init(coder: coder)
@@ -30,7 +30,7 @@ class CircularProgressView: UIView {
 
       update(animated: false)
 
-      observation = observedProgress.observe(\.fractionCompleted) { [weak self] (_, change) in
+      observation = observedProgress.observe(\.fractionCompleted) { [weak self] (_, _) in
         DispatchQueue.main.async {
           self?.update(animated: true)
 
