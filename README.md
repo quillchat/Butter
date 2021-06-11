@@ -1,4 +1,4 @@
-# Butter
+# 🧈 Butter
 
 An iOS toast framework.
 
