@@ -56,8 +56,16 @@ public class Butter {
     instance.toastViewController.dismiss(id: id)
   }
 
+  /// The foreground active window scene.
+  public static var foregroundActiveWindowScene: UIWindowScene? {
+    UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .filter { $0.activationState == .foregroundActive }
+      .first
+  }
+
   private static func instance(for windowScene: UIWindowScene? = nil) -> Instance? {
-    let windowScene = windowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+    let windowScene = windowScene ?? foregroundActiveWindowScene
 
     if let windowScene = windowScene {
       return instanceByScene[windowScene]

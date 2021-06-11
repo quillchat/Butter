@@ -101,10 +101,10 @@ If you enqueue a Toast with the same ID of an existing toast (either presented o
 
 ### Multiple Window Apps
 
-If your app supports multiple windows, it is necessary to specify the window scene on which the toast should appear. You would typically do this by deriving the window scene from the current view:
+If your app supports multiple windows, you can specify the window scene on which the toast should appear. If the toast should appear over a particular view:
 
 ```swift
 Butter.enqueue(.init(title: "Toast"), on: view.window.windowScene)
 ```
 
-If a window scene isn't specified, Butter wil use the first connected window scene.
+If a window scene isn't specified, the toast will appear over the foreground active window scene.
