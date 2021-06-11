@@ -98,3 +98,13 @@ Butter.enqueue(.init(
 ### Modifying a Toast
 
 If you enqueue a Toast with the same ID of an existing toast (either presented or enqueued), that Toast will be replaced.
+
+### Multiple Window Apps
+
+If your app supports multiple windows, it is necessary to specify the window scene on which the toast should appear. You would typically do this by deriving the window scene from the current view:
+
+```swift
+Butter.enqueue(.init(title: "Toast"), on: view.window.windowScene)
+```
+
+If a window scene isn't specified, Butter wil use the first connected window scene.
