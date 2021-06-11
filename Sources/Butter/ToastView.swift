@@ -84,7 +84,6 @@ class ToastView: UIView {
   }
 
   @objc private func tapGestureRecognizerAction() {
-    toast?.onTap?()
     onTap?()
   }
 

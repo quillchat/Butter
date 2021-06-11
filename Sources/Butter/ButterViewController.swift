@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-extension ToastViewController {
+extension ButterViewController {
   private struct Item {
     let toastView: ToastView
     var dismissDispatchWorkItem: DispatchWorkItem?
@@ -10,7 +10,7 @@ extension ToastViewController {
   }
 }
 
-class ToastViewController: UIViewController {
+class ButterViewController: UIViewController {
   private static let fadeDuration: TimeInterval = 0.3
   private static let bottomInset: CGFloat = 16
 
@@ -53,6 +53,7 @@ class ToastViewController: UIViewController {
       currentItem.dismissDispatchWorkItem = makeDismissDispatchWorkItem(for: toast)
 
       self.currentItem = currentItem
+      return
     }
 
     // Replace an existing toast if one already exists with the same ID as the one being enqueued.
@@ -87,6 +88,12 @@ class ToastViewController: UIViewController {
       guard let self = self else { return }
       guard let currentItem = self.currentItem else { return }
       guard let toast = currentItem.toastView.toast else { return }
+
+      // This ensures that if the action presents a view with an input accessory view, that input accessory view
+      // appears.
+      self.rootViewController?.view.window?.makeKey()
+
+      toast.onTap?()
 
       if currentItem.toastView === toastView && toast.shouldDismissWhenTapped {
         toastView.isUserInteractionEnabled = false

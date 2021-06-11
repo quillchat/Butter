@@ -4,7 +4,7 @@ import UIKit
 extension Butter {
   private struct Instance {
     let window: ButterWindow
-    let toastViewController: ToastViewController
+    let butterViewController: ButterViewController
   }
 }
 
@@ -17,16 +17,7 @@ public class Butter {
   public static func connect(_ windowScene: UIWindowScene) {
     guard instanceByScene[windowScene] == nil else { return }
 
-    let window = ButterWindow(windowScene: windowScene)
-    let toastViewController = ToastViewController()
-
-    toastViewController.rootViewController = windowScene.windows.first?.rootViewController
-
-    window.windowLevel = .alert
-    window.rootViewController = toastViewController
-    window.makeKeyAndVisible()
-
-    instanceByScene[windowScene] = .init(window: window, toastViewController: toastViewController)
+    instanceByScene[windowScene] = makeInstance(for: windowScene)
   }
 
   /// Disconnects a scene from butter.
@@ -43,7 +34,7 @@ public class Butter {
   public static func enqueue(_ toast: Toast, on windowScene: UIWindowScene? = nil) {
     guard let instance = self.instance(for: windowScene) else { return }
 
-    instance.toastViewController.enqueue(toast)
+    instance.butterViewController.enqueue(toast)
   }
 
   /// Dismisses the toast with the given ID. If a toast with the given toast's ID is enqueued, it will be dequeued.
@@ -53,25 +44,36 @@ public class Butter {
   public static func dismiss(id: UUID, from windowScene: UIWindowScene? = nil) {
     guard let instance = self.instance(for: windowScene) else { return }
 
-    instance.toastViewController.dismiss(id: id)
-  }
-
-  /// The foreground active window scene.
-  public static var foregroundActiveWindowScene: UIWindowScene? {
-    UIApplication.shared.connectedScenes
-      .compactMap { $0 as? UIWindowScene }
-      .filter { $0.activationState == .foregroundActive }
-      .first
+    instance.butterViewController.dismiss(id: id)
   }
 
   private static func instance(for windowScene: UIWindowScene? = nil) -> Instance? {
-    let windowScene = windowScene ?? foregroundActiveWindowScene
-
-    if let windowScene = windowScene {
-      return instanceByScene[windowScene]
-    } else {
+    guard let windowScene = windowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene else {
       return nil
     }
+
+    if let instance = instanceByScene[windowScene] {
+      return instance
+    }
+
+    let instance = makeInstance(for: windowScene)
+
+    instanceByScene[windowScene] = instance
+
+    return instance
+  }
+
+  private static func makeInstance(for windowScene: UIWindowScene) -> Instance {
+    let window = ButterWindow(windowScene: windowScene)
+    let butterViewController = ButterViewController()
+
+    butterViewController.rootViewController = windowScene.windows.first?.rootViewController
+
+    window.windowLevel = .alert
+    window.rootViewController = butterViewController
+    window.makeKeyAndVisible()
+
+    return .init(window: window, butterViewController: butterViewController)
   }
 
   private init() {}
