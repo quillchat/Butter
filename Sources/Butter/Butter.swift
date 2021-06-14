@@ -11,21 +11,7 @@ extension Butter {
 public class Butter {
   private static var instanceByScene = [UIWindowScene: Instance]()
 
-  /// Connects a scene to Butter.
-  ///
-  /// This should be called when a scene will connect to your app.
-  public static func connect(_ windowScene: UIWindowScene) {
-    guard instanceByScene[windowScene] == nil else { return }
-
-    instanceByScene[windowScene] = makeInstance(for: windowScene)
-  }
-
-  /// Disconnects a scene from butter.
-  ///
-  /// This should be called when a scene did disconnect from your app.
-  public static func disconnect(_ windowScene: UIWindowScene) {
-    instanceByScene[windowScene] = nil
-  }
+  private static var didDisconnectObserver: NSObjectProtocol?
 
   /// Enqueues a toast. If a toast with the given toast's ID is currently presented or enqueued, it will be modified.
   /// - Parameters:
@@ -48,19 +34,38 @@ public class Butter {
   }
 
   private static func instance(for windowScene: UIWindowScene? = nil) -> Instance? {
-    guard let windowScene = windowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-      return nil
-    }
+    guard let windowScene = windowScene ?? UIApplication.shared.currentWindowScene else { return nil }
 
     if let instance = instanceByScene[windowScene] {
       return instance
     }
 
-    let instance = makeInstance(for: windowScene)
+    connect(windowScene)
 
-    instanceByScene[windowScene] = instance
+    return instanceByScene[windowScene]
+  }
 
-    return instance
+  private static func connect(_ windowScene: UIWindowScene) {
+    guard instanceByScene[windowScene] == nil else { return }
+
+    instanceByScene[windowScene] = makeInstance(for: windowScene)
+
+    if didDisconnectObserver == nil {
+      // Start observing disconnections
+      didDisconnectObserver = NotificationCenter.default.addObserver(
+        forName: UIWindowScene.didDisconnectNotification,
+        object: nil,
+        queue: nil) { notification in
+
+        if let windowScene = notification.object as? UIWindowScene {
+          self.disconnect(windowScene)
+        }
+      }
+    }
+  }
+
+  private static func disconnect(_ windowScene: UIWindowScene) {
+    instanceByScene[windowScene] = nil
   }
 
   private static func makeInstance(for windowScene: UIWindowScene) -> Instance {

@@ -80,28 +80,17 @@ Whether or not a tap action is specified, a standard toast will always dismiss i
 
 If you enqueue a Toast with the same ID as an existing toast (either presented or enqueued), that Toast will be replaced.
 
+## Bottom Inset
+
+Toasts are inset from bottom of the screen according to the safe area inset of the top-most view controller. This offset can be overridden by implementing the `BottomInsetProviding` protocol.
+
+The top-most view controller is determined by traversing the `presentedViewController` hierarchy, stepping into the `topViewController` of any `UINavigationController` and the `selectedViewController` of any `UITabBarController`. A view controller may not become the  `topViewController` if:
+
+* It has a `modalPresentationStyle` of `.popover`.
+* It has a `modalPresentationStyle` of `.pageSheet` or `.formSheet` in a  regular-height, regular-width size class.
+* It is a `UIAlertController`.
+
 ## Multiple Window Apps
-
-Butter will automatically create an instance for each new window scene that it encounters. If your app supports multiple windows, you should add the following to your  `UIWindowSceneDelegate`:
-
-```swift
-func scene(
-  _ scene: UIScene, 
-  willConnectTo session: UISceneSession, 
-  options connectionOptions: UIScene.ConnectionOptions) {
-  
-  if let windowScene = scene as? UIWindowScene {
-    Butter.connect(windowScene)
-  }
-
-func sceneDidDisconnect(_ scene: UIScene) {
-  if let windowScene = scene as? UIWindowScene {
-    Butter.disconnect(windowScene)
-  }
-}
-``` 
-
-This will ensure that memory is freed for disconnected scenes.
 
 You can specify the window scene on which the toast should appear. If the toast should appear over a particular view:
 

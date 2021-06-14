@@ -2,16 +2,39 @@ import Foundation
 import UIKit
 
 extension UIViewController {
-  /// Finds the top-most presented UIViewController by walking the `presentedViewController` hierarchy.
+  /// Finds the top-most presented `UIViewController` by walking the `presentedViewController` hierarchy. Also steps
+  /// into the `topViewController` of a `UINavigationController` and the `selectedViewController` of a
+  /// `UITabBarController`.
+  /// - Parameter canBeTopViewController: Indicate whether the given view controller can become the top view controller.
   func topViewController(canBeTopViewController: (UIViewController) -> Bool) -> UIViewController {
     var topViewController = self
 
-    while let presentedViewController = topViewController.presentedViewController,
-      canBeTopViewController(presentedViewController) {
+    while let nextViewController = nextViewController(of: topViewController),
+      canBeTopViewController(nextViewController) {
 
-      topViewController = presentedViewController
+      topViewController = nextViewController
     }
 
     return topViewController
+  }
+
+  private func nextViewController(of viewController: UIViewController) -> UIViewController? {
+    if let presentedViewController = viewController.presentedViewController {
+      return presentedViewController
+    }
+
+    if let navigationController = viewController as? UINavigationController,
+      let topViewController = navigationController.topViewController {
+
+      return topViewController
+    }
+
+    if let tabBarController = viewController as? UITabBarController,
+      let selectedViewController = tabBarController.selectedViewController {
+
+      return selectedViewController
+    }
+
+    return nil
   }
 }

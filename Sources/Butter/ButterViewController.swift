@@ -5,8 +5,13 @@ extension ButterViewController {
   private struct Item {
     let toastView: ToastView
     var dismissDispatchWorkItem: DispatchWorkItem?
-    var bottomInset: CGFloat
+    var bottomInsetAndUserInterfaceStyle: BottomInsetAndUserInterfaceStyle
     var onTap: (() -> Void)?
+  }
+
+  private struct BottomInsetAndUserInterfaceStyle: Equatable {
+    let bottomInset: CGFloat
+    let userInterfaceStyle: UIUserInterfaceStyle
   }
 }
 
@@ -28,14 +33,16 @@ class ButterViewController: UIViewController {
       guard let self = self else { return }
       guard let currentItem = self.currentItem else { return }
 
-      let bottomInset = self.bottomInset()
+      let bottomInsetAndUserInterfaceStyle = self.bottomInsetAndUserInterfaceStyle()
 
-      guard currentItem.bottomInset != bottomInset else { return }
+      guard currentItem.bottomInsetAndUserInterfaceStyle != bottomInsetAndUserInterfaceStyle else { return }
 
-      self.currentItem!.bottomInset = bottomInset
+      self.currentItem!.bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle
+
+      currentItem.toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
 
       currentItem.toastView.snp.updateConstraints { make in
-        make.bottom.equalTo(self.view.snp.bottom).inset(self.currentItem!.bottomInset)
+        make.bottom.equalTo(self.view.snp.bottom).inset(self.currentItem!.bottomInsetAndUserInterfaceStyle.bottomInset)
       }
 
       UIView.animate(withDuration: 0.3) {
@@ -105,10 +112,12 @@ class ButterViewController: UIViewController {
 
     toastView.toast = toast
 
-    let bottomInset = bottomInset()
+    let bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle()
+
+    toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
 
     toastView.snp.makeConstraints { make in
-      make.bottom.equalTo(self.view.snp.bottom).inset(bottomInset)
+      make.bottom.equalTo(self.view.snp.bottom).inset(bottomInsetAndUserInterfaceStyle.bottomInset)
       make.left.greaterThanOrEqualToSuperview().inset(16)
       make.right.lessThanOrEqualToSuperview().inset(16)
       make.centerX.equalToSuperview()
@@ -126,7 +135,9 @@ class ButterViewController: UIViewController {
     }
 
     currentItem = Item(
-      toastView: toastView, dismissDispatchWorkItem: makeDismissDispatchWorkItem(for: toast), bottomInset: bottomInset)
+      toastView: toastView,
+      dismissDispatchWorkItem: makeDismissDispatchWorkItem(for: toast),
+      bottomInsetAndUserInterfaceStyle: bottomInsetAndUserInterfaceStyle)
   }
 
   func dismiss(id: UUID) {
@@ -156,12 +167,12 @@ class ButterViewController: UIViewController {
 
     currentItem.toastView.isUserInteractionEnabled = false
 
+    self.currentItem = nil
+
     UIView.animate(withDuration: Self.fadeDuration, animations: {
       currentItem.toastView.alpha = 0
     }, completion: { [weak self] _ in
       guard let weakSelf = self else { return }
-
-      weakSelf.currentItem = nil
 
       currentItem.toastView.removeFromSuperview()
 
@@ -171,10 +182,10 @@ class ButterViewController: UIViewController {
     })
   }
 
-  private func bottomInset() -> CGFloat {
-    // Walk the view hierarchy of the rootViewController to determine the top-most view. Use that view's safeAreaInset
-    // to determine the bottom inset of the toast.
-    guard let rootViewController = self.rootViewController else { return Self.bottomInset }
+  private func bottomInsetAndUserInterfaceStyle() -> BottomInsetAndUserInterfaceStyle {
+    guard let rootViewController = self.rootViewController else {
+      return .init(bottomInset: Self.bottomInset, userInterfaceStyle: .unspecified)
+    }
 
     var viewController = rootViewController.topViewController { viewController in
       if viewController.modalPresentationStyle == .popover { return false }
@@ -191,13 +202,16 @@ class ButterViewController: UIViewController {
       return true
     }
 
-    if let tabBarController = viewController as? UITabBarController,
-      let selectedViewController = tabBarController.selectedViewController {
+    let bottomInset: CGFloat
 
-      viewController = selectedViewController
+    if let bottomInsetting = viewController as? BottomInsetProviding {
+      bottomInset = bottomInsetting.bottomInset
+    } else {
+      bottomInset = viewController.view.safeAreaInsets.bottom
     }
 
-    return viewController.view.safeAreaInsets.bottom + Self.bottomInset
+    return .init(
+      bottomInset: bottomInset + Self.bottomInset, userInterfaceStyle: viewController.overrideUserInterfaceStyle)
   }
 
   private func makeDismissDispatchWorkItem(for toast: Toast) -> DispatchWorkItem? {
