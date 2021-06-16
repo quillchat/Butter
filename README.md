@@ -46,7 +46,7 @@ If a toast with the given ID is presented, it will be dismissed. If it is enqueu
 A progress toast is one that includes a circular progress indicator. A progress toast is automatically dismissed once its progress is finished. To enqueue a progress toast:
 
 ```swift
-let progress = getProgress()
+let progress: Progress = getProgress()
 Butter.enqueue(.init(title: "Uploading…", style: .progress(progress)))
 ```
 
