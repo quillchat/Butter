@@ -120,10 +120,6 @@ class ButterViewController: UIViewController {
       toastView.leftAnchor.constraint(greaterThanOrEqualTo: view.leftAnchor, constant: 16),
     ])
 
-//    toastView.snp.makeConstraints { make in
-//      make.bottom.equalTo(self.view.snp.bottom).inset(bottomInsetAndUserInterfaceStyle.bottomInset)
-//    }
-
     let bottomConstraint = toastView.bottomAnchor.constraint(
       equalTo: view.bottomAnchor, constant: -bottomInsetAndUserInterfaceStyle.bottomInset)
 
