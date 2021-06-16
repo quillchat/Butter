@@ -33,7 +33,7 @@ let id = UUID()
 Butter.enqueue(.init(id: id, title: "Please wait…", style: .indeterminate))
 ```
 
-Indeterminate toasts are not automatically dismissed. You dismiss a toast by specifying it's ID. For example:
+Indeterminate toasts are not automatically dismissed. You dismiss a toast by specifying its ID. For example:
 
 ```swift
 Butter.dismiss(id: id)
