@@ -21,6 +21,11 @@ class CircularProgressView: UIView {
 
   override var intrinsicContentSize: CGSize { .init(width: 20, height: 20) }
 
+  override func tintColorDidChange() {
+    super.tintColorDidChange()
+    updateColor()
+  }
+
   var observedProgress: Progress? {
     didSet {
       guard let observedProgress = observedProgress else {
@@ -84,7 +89,7 @@ class CircularProgressView: UIView {
 
   private func updateColor() {
     trackLayer.strokeColor = UIColor.tertiarySystemFill.cgColor
-    progressLayer.strokeColor = UIColor.systemBlue.cgColor
+    progressLayer.strokeColor = tintColor?.cgColor ?? UIColor.systemBlue.cgColor
   }
 
   private func doInit() {

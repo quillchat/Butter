@@ -1,5 +1,4 @@
 import Foundation
-import SnapKit
 import UIKit
 
 class ToastView: UIView {
@@ -65,7 +64,8 @@ class ToastView: UIView {
         activityIndicatorView.isHidden = false
         activityIndicatorView.startAnimating()
         circularProgressView.isHidden = true
-      case let .progress(progress):
+      case let .progress(progress, tintColor):
+        circularProgressView.tintColor = tintColor
         circularProgressView.onFinished = { [weak self] in
           self?.onProgressFinished?()
         }
@@ -113,9 +113,8 @@ class ToastView: UIView {
 
     addSubview(contentView)
 
-    contentView.snp.makeConstraints { make in
-      make.edges.equalToSuperview()
-    }
+    contentView.translatesAutoresizingMaskIntoConstraints = false
+    contentView.constrainEdgesEqualToSuperview()
 
     contentView.backgroundColor = .clear
 
@@ -128,30 +127,36 @@ class ToastView: UIView {
     leadingItemStackView.addArrangedSubview(activityIndicatorView)
     leadingItemStackView.addArrangedSubview(circularProgressView)
 
-    visualEffectView.snp.makeConstraints { make in
-      make.edges.equalToSuperview()
-    }
+    visualEffectView.translatesAutoresizingMaskIntoConstraints = false
+    visualEffectView.constrainEdgesEqualToSuperview()
 
     titleLabel.setContentCompressionResistancePriority(.defaultHigh - 1, for: .horizontal)
     subtitleLabel.setContentCompressionResistancePriority(.defaultHigh - 1, for: .horizontal)
 
-    self.snp.makeConstraints { make in
-      make.width.equalTo(Self.minimumWidth).priority(.medium)
-      make.height.equalTo(Self.height)
-    }
+    translatesAutoresizingMaskIntoConstraints = false
 
-    stackView.snp.makeConstraints { make in
-      make.top.greaterThanOrEqualToSuperview()
-      make.bottom.lessThanOrEqualToSuperview()
-      make.center.equalToSuperview()
+    NSLayoutConstraint.activate([
+      widthAnchor.constraint(equalToConstant: Self.minimumWidth).priority(.init(500)),
+      heightAnchor.constraint(equalToConstant: Self.height)
+    ])
 
-      make.left.equalToSuperview().inset(Self.height / 2).priority(.medium)
-      make.left.equalTo(leadingItemStackView.snp.right).inset(-8).priority(.high)
-    }
+    stackView.translatesAutoresizingMaskIntoConstraints = false
 
-    leadingItemStackView.snp.makeConstraints { make in
-      make.center.equalTo(Self.height / 2)
-    }
+    NSLayoutConstraint.activate([
+      stackView.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor),
+      stackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor),
+      stackView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+      stackView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+      stackView.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: Self.height / 2).priority(.init(500)),
+      stackView.leftAnchor.constraint(equalTo: leadingItemStackView.rightAnchor, constant: 8).priority(.defaultHigh)
+    ])
+
+    leadingItemStackView.translatesAutoresizingMaskIntoConstraints = false
+
+    NSLayoutConstraint.activate([
+      leadingItemStackView.centerXAnchor.constraint(equalTo: contentView.leftAnchor, constant: Self.height / 2),
+      leadingItemStackView.centerYAnchor.constraint(equalTo: contentView.topAnchor, constant: Self.height / 2)
+    ])
 
     titleLabel.textColor = .label
     subtitleLabel.textColor = .secondaryLabel

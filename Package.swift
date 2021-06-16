@@ -11,14 +11,8 @@ let package = Package(
       name: "Butter",
       targets: ["Butter"]),
   ],
-  dependencies: [
-    .package(
-      url: "https://github.com/SnapKit/SnapKit",
-      from: "5.0.1")
-  ],
   targets: [
     .target(
-      name: "Butter",
-      dependencies: ["SnapKit"])
+      name: "Butter")
   ]
 )

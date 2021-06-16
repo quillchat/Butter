@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// The appearance of the toast.
 public enum Appearance: Hashable {
@@ -19,7 +20,7 @@ public enum Style: Hashable {
 
   /// A toast that includes a circular progress indicator. The toast is automatically dismissed when the progress
   /// `isFinished`.
-  case progress(Progress)
+  case progress(Progress, tintColor: UIColor? = nil)
 }
 
 public struct Toast: Identifiable {
@@ -76,7 +77,7 @@ public struct Toast: Identifiable {
       return true
     case .indeterminate:
       return false
-    case let .progress(progress):
+    case let .progress(progress, _):
       return progress.isFinished
     }
   }
@@ -89,7 +90,7 @@ public struct Toast: Identifiable {
       return Self.duration
     case .indeterminate:
       return nil
-    case let .progress(progress):
+    case let .progress(progress, _):
       return progress.isFinished ? Self.duration : nil
     }
   }

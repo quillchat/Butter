@@ -6,6 +6,7 @@ extension ButterViewController {
     let toastView: ToastView
     var dismissDispatchWorkItem: DispatchWorkItem?
     var bottomInsetAndUserInterfaceStyle: BottomInsetAndUserInterfaceStyle
+    var bottomConstraint: NSLayoutConstraint
     var onTap: (() -> Void)?
   }
 
@@ -31,23 +32,21 @@ class ButterViewController: UIViewController {
   override func viewDidLoad() {
     timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true, block: { [weak self] _ in
       guard let self = self else { return }
-      guard let currentItem = self.currentItem else { return }
+      guard var currentItem = self.currentItem else { return }
 
       let bottomInsetAndUserInterfaceStyle = self.bottomInsetAndUserInterfaceStyle()
 
       guard currentItem.bottomInsetAndUserInterfaceStyle != bottomInsetAndUserInterfaceStyle else { return }
 
-      self.currentItem!.bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle
-
+      currentItem.bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle
       currentItem.toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
-
-      currentItem.toastView.snp.updateConstraints { make in
-        make.bottom.equalTo(self.view.snp.bottom).inset(self.currentItem!.bottomInsetAndUserInterfaceStyle.bottomInset)
-      }
+      currentItem.bottomConstraint.constant = -currentItem.bottomInsetAndUserInterfaceStyle.bottomInset
 
       UIView.animate(withDuration: 0.3) {
         currentItem.toastView.superview?.layoutIfNeeded()
       }
+
+      self.currentItem = currentItem
     })
   }
 
@@ -116,12 +115,19 @@ class ButterViewController: UIViewController {
 
     toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
 
-    toastView.snp.makeConstraints { make in
-      make.bottom.equalTo(self.view.snp.bottom).inset(bottomInsetAndUserInterfaceStyle.bottomInset)
-      make.left.greaterThanOrEqualToSuperview().inset(16)
-      make.right.lessThanOrEqualToSuperview().inset(16)
-      make.centerX.equalToSuperview()
-    }
+    NSLayoutConstraint.activate([
+      toastView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      toastView.leftAnchor.constraint(greaterThanOrEqualTo: view.leftAnchor, constant: 16),
+    ])
+
+//    toastView.snp.makeConstraints { make in
+//      make.bottom.equalTo(self.view.snp.bottom).inset(bottomInsetAndUserInterfaceStyle.bottomInset)
+//    }
+
+    let bottomConstraint = toastView.bottomAnchor.constraint(
+      equalTo: view.bottomAnchor, constant: -bottomInsetAndUserInterfaceStyle.bottomInset)
+
+    bottomConstraint.isActive = true
 
     toastView.alpha = 0
     toastView.transform = CGAffineTransform.init(scaleX: 0.3, y: 0.3)
@@ -137,7 +143,8 @@ class ButterViewController: UIViewController {
     currentItem = Item(
       toastView: toastView,
       dismissDispatchWorkItem: makeDismissDispatchWorkItem(for: toast),
-      bottomInsetAndUserInterfaceStyle: bottomInsetAndUserInterfaceStyle)
+      bottomInsetAndUserInterfaceStyle: bottomInsetAndUserInterfaceStyle,
+      bottomConstraint: bottomConstraint)
   }
 
   func dismiss(id: UUID) {
@@ -187,7 +194,7 @@ class ButterViewController: UIViewController {
       return .init(bottomInset: Self.bottomInset, userInterfaceStyle: .unspecified)
     }
 
-    var viewController = rootViewController.topViewController { viewController in
+    let viewController = rootViewController.topViewController { viewController in
       if viewController.modalPresentationStyle == .popover { return false }
 
       if viewController.traitCollection.horizontalSizeClass == .regular &&

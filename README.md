@@ -50,6 +50,12 @@ let progress = getProgress()
 Butter.enqueue(.init(title: "Uploading…", style: .progress(progress)))
 ```
 
+You can optionally provide a tint color for the progress indicator:
+
+```swift
+Butter.enqueue(.init(title: "Uploading…", style: .progress(progress, tintColor: .systemRed)))
+```
+
 ## Appearance
 
 Toasts come in two appearances:

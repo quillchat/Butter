@@ -4,7 +4,7 @@ import UIKit
 public extension UIApplication {
   /// Returns the window scene that is running in the foreground and is currently receiving events. If one does not
   /// exist, returns the first connected window scene.
-  public var currentWindowScene: UIWindowScene? {
+  var currentWindowScene: UIWindowScene? {
     return foregroundActiveWindowScene ?? firstWindowScene
   }
 
