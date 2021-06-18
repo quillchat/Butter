@@ -4,15 +4,16 @@ import UIKit
 extension ButterViewController {
   private struct Item {
     let toastView: ToastView
+    var config: ItemConfig
     var dismissDispatchWorkItem: DispatchWorkItem?
-    var bottomInsetAndUserInterfaceStyle: BottomInsetAndUserInterfaceStyle
     var bottomConstraint: NSLayoutConstraint
     var onTap: (() -> Void)?
   }
 
-  private struct BottomInsetAndUserInterfaceStyle: Equatable {
-    let bottomInset: CGFloat
-    let userInterfaceStyle: UIUserInterfaceStyle
+  private struct ItemConfig: Equatable {
+    var bottomInset: CGFloat
+    var userInterfaceStyle: UIUserInterfaceStyle
+    var interfaceOrientation: UIInterfaceOrientation
   }
 }
 
@@ -34,21 +35,43 @@ class ButterViewController: UIViewController {
       guard let self = self else { return }
       guard var currentItem = self.currentItem else { return }
 
-      let bottomInsetAndUserInterfaceStyle = self.bottomInsetAndUserInterfaceStyle()
+      let itemConfig = self.itemConfig()
 
-      guard currentItem.bottomInsetAndUserInterfaceStyle != bottomInsetAndUserInterfaceStyle else { return }
+      guard itemConfig != currentItem.config else { return }
 
-      currentItem.bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle
-      currentItem.toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
-      currentItem.bottomConstraint.constant = -currentItem.bottomInsetAndUserInterfaceStyle.bottomInset
+      let needsLayout = currentItem.config.bottomInset != itemConfig.bottomInset
 
-      UIView.animate(withDuration: 0.3) {
-        currentItem.toastView.superview?.layoutIfNeeded()
+      if needsLayout {
+        currentItem.bottomConstraint.constant = -itemConfig.bottomInset
       }
+
+      currentItem.toastView.overrideUserInterfaceStyle = itemConfig.userInterfaceStyle
+
+      if currentItem.config.interfaceOrientation != itemConfig.interfaceOrientation {
+        // The interfaceOrientation has changed so reset the rootViewController. This will force the view controller to
+        // reorient itself.
+        let window = self.view.window
+
+        window?.rootViewController = nil
+        window?.rootViewController = self
+      } else if needsLayout {
+        UIView.animate(withDuration: 0.3) {
+          currentItem.toastView.superview?.layoutIfNeeded()
+        }
+      }
+
+      currentItem.config = itemConfig
 
       self.currentItem = currentItem
     })
   }
+
+  override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+    UIInterfaceOrientationMask(interfaceOrientation: windowSceneInterfaceOrientation) ??
+      super.supportedInterfaceOrientations
+  }
+
+  override var shouldAutorotate: Bool { true }
 
   /// Enqueues the given toast. If a toast with the same ID is already visible or enqueued, it is replaced.
   func enqueue(_ toast: Toast) {
@@ -111,9 +134,9 @@ class ButterViewController: UIViewController {
 
     toastView.toast = toast
 
-    let bottomInsetAndUserInterfaceStyle = bottomInsetAndUserInterfaceStyle()
+    let itemConfig = self.itemConfig()
 
-    toastView.overrideUserInterfaceStyle = bottomInsetAndUserInterfaceStyle.userInterfaceStyle
+    toastView.overrideUserInterfaceStyle = itemConfig.userInterfaceStyle
 
     NSLayoutConstraint.activate([
       toastView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -121,7 +144,7 @@ class ButterViewController: UIViewController {
     ])
 
     let bottomConstraint = toastView.bottomAnchor.constraint(
-      equalTo: view.bottomAnchor, constant: -bottomInsetAndUserInterfaceStyle.bottomInset)
+      equalTo: view.bottomAnchor, constant: -itemConfig.bottomInset)
 
     bottomConstraint.isActive = true
 
@@ -138,8 +161,8 @@ class ButterViewController: UIViewController {
 
     currentItem = Item(
       toastView: toastView,
+      config: itemConfig,
       dismissDispatchWorkItem: makeDismissDispatchWorkItem(for: toast),
-      bottomInsetAndUserInterfaceStyle: bottomInsetAndUserInterfaceStyle,
       bottomConstraint: bottomConstraint)
   }
 
@@ -185,19 +208,27 @@ class ButterViewController: UIViewController {
     })
   }
 
-  private func bottomInsetAndUserInterfaceStyle() -> BottomInsetAndUserInterfaceStyle {
+  private func itemConfig() -> ItemConfig {
+    let interfaceOrientation = self.windowSceneInterfaceOrientation
+
     guard let rootViewController = self.rootViewController else {
-      return .init(bottomInset: Self.bottomInset, userInterfaceStyle: .unspecified)
+      return .init(
+        bottomInset: Self.bottomInset, userInterfaceStyle: .unspecified, interfaceOrientation: interfaceOrientation)
     }
 
-    let viewController = rootViewController.topViewController { viewController in
-      if viewController.modalPresentationStyle == .popover { return false }
+    let topViewController = rootViewController.topViewController { viewController in
+      if viewController.isModalInPresentation {
+        let modalPresentationStyle = viewController.modalPresentationStyle
 
-      if viewController.traitCollection.horizontalSizeClass == .regular &&
-        viewController.traitCollection.verticalSizeClass == .regular {
+        if modalPresentationStyle == .popover { return false }
 
-        if viewController.modalPresentationStyle == .pageSheet ||
-          viewController.modalPresentationStyle == .formSheet { return false }
+        if modalPresentationStyle == .pageSheet || modalPresentationStyle == .formSheet {
+          let traitCollection = viewController.traitCollection
+
+          if traitCollection.horizontalSizeClass == .regular && traitCollection.verticalSizeClass == .regular {
+            return false
+          }
+        }
       }
 
       if viewController is UIAlertController { return false }
@@ -205,16 +236,14 @@ class ButterViewController: UIViewController {
       return true
     }
 
-    let bottomInset: CGFloat
-
-    if let bottomInsetting = viewController as? BottomInsetProviding {
-      bottomInset = bottomInsetting.bottomInset
-    } else {
-      bottomInset = viewController.view.safeAreaInsets.bottom
-    }
-
     return .init(
-      bottomInset: bottomInset + Self.bottomInset, userInterfaceStyle: viewController.overrideUserInterfaceStyle)
+      bottomInset: topViewController.bottomInset() + Self.bottomInset,
+      userInterfaceStyle: topViewController.overrideUserInterfaceStyle,
+      interfaceOrientation: interfaceOrientation)
+  }
+
+  private var windowSceneInterfaceOrientation: UIInterfaceOrientation {
+    view.window?.windowScene?.interfaceOrientation ?? .portrait
   }
 
   private func makeDismissDispatchWorkItem(for toast: Toast) -> DispatchWorkItem? {
