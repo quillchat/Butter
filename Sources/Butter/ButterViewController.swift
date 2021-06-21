@@ -106,6 +106,10 @@ class ButterViewController: UIViewController {
   func enqueue(_ toast: Toast) {
     // Replace the current toast if necessary.
     if var currentItem = currentItem, currentItem.toastView.toast?.id == toast.id {
+      // It might be fading out.
+      currentItem.toastView.layer.removeAllAnimations()
+      currentItem.toastView.alpha = 1
+
       currentItem.toastView.toast = toast
       currentItem.edge = toast.edge
       currentItem.dismissDispatchWorkItem?.cancel()
@@ -237,17 +241,20 @@ class ButterViewController: UIViewController {
 
     currentItem.toastView.isUserInteractionEnabled = false
 
-    self.currentItem = nil
-
     UIView.animate(withDuration: Self.fadeDuration, animations: {
       currentItem.toastView.alpha = 0
-    }, completion: { [weak self] _ in
-      guard let weakSelf = self else { return }
+    }, completion: { [weak self] isFinished in
+      guard let self = self else { return }
+
+      // The toast may been replaced while it was fading out.
+      guard isFinished else { return }
+
+      self.currentItem = nil
 
       currentItem.toastView.removeFromSuperview()
 
-      if !weakSelf.queue.isEmpty {
-        weakSelf.dequeue()
+      if !self.queue.isEmpty {
+        self.dequeue()
       }
     })
   }
