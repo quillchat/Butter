@@ -18,11 +18,16 @@ extension UIViewController {
     return topViewController
   }
 
-  func bottomInset() -> CGFloat {
-    if let bottomInsetProviding = self as? BottomInsetProviding {
-      return bottomInsetProviding.bottomInset
-    } else {
-      return view.safeAreaInsets.bottom
+  func inset(edge: Edge) -> CGFloat {
+    switch edge {
+    case .top:
+      return view.safeAreaInsets.top
+    case .bottom:
+      if let bottomInsetProviding = self as? BottomInsetProviding {
+        return bottomInsetProviding.bottomInset
+      } else {
+        return view.safeAreaInsets.bottom
+      }
     }
   }
 

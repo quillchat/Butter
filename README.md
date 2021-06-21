@@ -84,24 +84,34 @@ Whether or not a tap action is specified, a standard toast will always dismiss i
 
 ## Modifying a Toast
 
-If you enqueue a Toast with the same ID as an existing toast (either presented or enqueued), that Toast will be replaced.
+If you enqueue a toast with the same ID as an existing toast (either presented or enqueued), that toast will be replaced.
 
-## Bottom Inset
+## Screen Edge
 
-Toasts are inset from bottom of the screen according to the safe area inset of the top-most view controller. This offset can be overridden by implementing the `BottomInsetProviding` protocol.
+Toasts are inset according to the safe area inset of the top-most view controller. The top-most view controller is determined by traversing the `presentedViewController` hierarchy, stepping into the `topViewController` of any `UINavigationController` and the `selectedViewController` of any `UITabBarController`.
 
-The top-most view controller is determined by traversing the `presentedViewController` hierarchy, stepping into the `topViewController` of any `UINavigationController` and the `selectedViewController` of any `UITabBarController`. A view controller may not become the  `topViewController` if:
+A view controller may *not* become the top-most view controller if:
 
 * It has a `modalPresentationStyle` of `.popover`.
 * It has a `modalPresentationStyle` of `.pageSheet` or `.formSheet` in a  regular-height, regular-width size class.
 * It is a `UIAlertController`.
 
+By default, toasts appear from the bottom edge of the screen. To present a toast from the top edge, specify the edge property:
+
+```swift
+Butter.enqueue(.init(title: "Message Sent", edge: .top))
+```
+
+The top-most view controller can override the bottom inset by implementing the `BottomInsetProviding` protocol.
+
 ## Multiple Window Apps
 
-You can specify the window scene on which the toast should appear. If the toast should appear over a particular view:
+By default, toasts appear in the first foreground active window scene. You can optionally specify the window scene in which the toast should appear. For example, if a toast should appear in the same scene as a particular view:
 
 ```swift
 Butter.enqueue(.init(title: "Toast"), on: view.window.windowScene)
 ```
 
-If a window scene isn't specified, the toast will appear over the foreground active window scene.
+## Known Issues
+
+Toasts follow the user interface orientation of the top-most view controller. If a toast is visible when the top-most view controller changes to one with a different orientation, the debug console will display an `Unbalanced calls to begin/end appearance transitions for Butter.ButterViewController` error.

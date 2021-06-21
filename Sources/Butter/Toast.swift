@@ -23,6 +23,17 @@ public enum Style: Hashable {
   case progress(Progress, tintColor: UIColor? = nil)
 }
 
+/// The screen edge that a toast appears on.
+public enum Edge: Hashable {
+  /// The top of the screen.
+  case top
+
+  /// The bottom of the screen. Toasts are inset from bottom of the screen according to the safe area inset of the
+  /// top-most view controller. This offset can be overridden by implementing the
+  /// [BottomInsetProviding](x-source-tag://BottomInsetProviding) protocol.
+  case bottom
+}
+
 public struct Toast: Identifiable {
   private static let duration: TimeInterval = 3
 
@@ -40,6 +51,9 @@ public struct Toast: Identifiable {
   /// The style of the toast.
   public var style: Style
 
+  /// The screen edge that the toast appears on.
+  public var edge: Edge
+
   /// The optional action to perform when the toast is tapped.
   public var onTap: (() -> Void)?
 
@@ -50,6 +64,7 @@ public struct Toast: Identifiable {
   ///   - subtitle: The optional subtitle.
   ///   - appearance: The appearance of the toast.
   ///   - style: The style of the toast.
+  ///   - edge: The screen edge that the toast appears on.
   ///   - onTap: The optional action to perform when the toast is tapped.
   public init(
     id: UUID = UUID(),
@@ -57,6 +72,7 @@ public struct Toast: Identifiable {
     subtitle: String? = nil,
     appearance: Appearance = .standard,
     style: Style = .standard,
+    edge: Edge = .bottom,
     onTap: (() -> Void)? = nil) {
 
     self.id = id
@@ -64,6 +80,7 @@ public struct Toast: Identifiable {
     self.subtitle = subtitle
     self.appearance = appearance
     self.style = style
+    self.edge = edge
     self.onTap = onTap
   }
 

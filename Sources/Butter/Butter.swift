@@ -72,7 +72,8 @@ public class Butter {
     let window = ButterWindow(windowScene: windowScene)
     let butterViewController = ButterViewController()
 
-    butterViewController.rootViewController = windowScene.windows.first?.rootViewController
+    butterViewController.mainRootViewController = windowScene.windows.first?.rootViewController
+    butterViewController.windowScene = windowScene
 
     window.windowLevel = .alert
     window.rootViewController = butterViewController

@@ -4,22 +4,40 @@ import UIKit
 extension ButterViewController {
   private struct Item {
     let toastView: ToastView
+    var edge: Edge
     var config: ItemConfig
     var dismissDispatchWorkItem: DispatchWorkItem?
+    var topConstraint: NSLayoutConstraint
     var bottomConstraint: NSLayoutConstraint
     var onTap: (() -> Void)?
   }
 
   private struct ItemConfig: Equatable {
-    var bottomInset: CGFloat
+    var inset: Inset
     var userInterfaceStyle: UIUserInterfaceStyle
     var interfaceOrientation: UIInterfaceOrientation
+  }
+
+  fileprivate enum Inset: Equatable {
+    case top(CGFloat)
+    case bottom(CGFloat)
+  }
+}
+
+extension ButterViewController.Inset {
+  init(_ constant: CGFloat, edge: Edge) {
+    switch edge {
+    case .top:
+      self = .top(constant)
+    case .bottom:
+      self = .bottom(constant)
+    }
   }
 }
 
 class ButterViewController: UIViewController {
   private static let fadeDuration: TimeInterval = 0.3
-  private static let bottomInset: CGFloat = 16
+  private static let additionalInset: CGFloat = 16
 
   private var currentItem: Item?
 
@@ -28,26 +46,37 @@ class ButterViewController: UIViewController {
   private var timer: Timer!
 
   /// The rootViewController of the main window.
-  weak var rootViewController: UIViewController?
+  weak var mainRootViewController: UIViewController?
+
+  weak var windowScene: UIWindowScene?
 
   override func viewDidLoad() {
     timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true, block: { [weak self] _ in
       guard let self = self else { return }
       guard var currentItem = self.currentItem else { return }
 
-      let itemConfig = self.itemConfig()
+      let newItemConfig = self.itemConfig(edge: currentItem.edge)
 
-      guard itemConfig != currentItem.config else { return }
+      guard newItemConfig != currentItem.config else { return }
 
-      let needsLayout = currentItem.config.bottomInset != itemConfig.bottomInset
+      let needsLayout = currentItem.config.inset != newItemConfig.inset
 
       if needsLayout {
-        currentItem.bottomConstraint.constant = -itemConfig.bottomInset
+        switch newItemConfig.inset {
+        case let .top(inset):
+          currentItem.topConstraint.constant = inset
+          currentItem.topConstraint.priority = .defaultHigh
+          currentItem.bottomConstraint.priority = .defaultLow
+        case let .bottom(inset):
+          currentItem.bottomConstraint.constant = -inset
+          currentItem.bottomConstraint.priority = .defaultHigh
+          currentItem.topConstraint.priority = .defaultLow
+        }
       }
 
-      currentItem.toastView.overrideUserInterfaceStyle = itemConfig.userInterfaceStyle
+      currentItem.toastView.overrideUserInterfaceStyle = newItemConfig.userInterfaceStyle
 
-      if currentItem.config.interfaceOrientation != itemConfig.interfaceOrientation {
+      if currentItem.config.interfaceOrientation != newItemConfig.interfaceOrientation {
         // The interfaceOrientation has changed so reset the rootViewController. This will force the view controller to
         // reorient itself.
         let window = self.view.window
@@ -60,7 +89,7 @@ class ButterViewController: UIViewController {
         }
       }
 
-      currentItem.config = itemConfig
+      currentItem.config = newItemConfig
 
       self.currentItem = currentItem
     })
@@ -78,6 +107,7 @@ class ButterViewController: UIViewController {
     // Replace the current toast if necessary.
     if var currentItem = currentItem, currentItem.toastView.toast?.id == toast.id {
       currentItem.toastView.toast = toast
+      currentItem.edge = toast.edge
       currentItem.dismissDispatchWorkItem?.cancel()
       currentItem.dismissDispatchWorkItem = makeDismissDispatchWorkItem(for: toast)
 
@@ -120,7 +150,7 @@ class ButterViewController: UIViewController {
 
       // This ensures that if the action presents a view with an input accessory view, that input accessory view
       // appears.
-      self.rootViewController?.view.window?.makeKey()
+      self.mainRootViewController?.view.window?.makeKey()
 
       toast.onTap?()
 
@@ -134,7 +164,7 @@ class ButterViewController: UIViewController {
 
     toastView.toast = toast
 
-    let itemConfig = self.itemConfig()
+    let itemConfig = self.itemConfig(edge: toast.edge)
 
     toastView.overrideUserInterfaceStyle = itemConfig.userInterfaceStyle
 
@@ -143,9 +173,21 @@ class ButterViewController: UIViewController {
       toastView.leftAnchor.constraint(greaterThanOrEqualTo: view.leftAnchor, constant: 16),
     ])
 
-    let bottomConstraint = toastView.bottomAnchor.constraint(
-      equalTo: view.bottomAnchor, constant: -itemConfig.bottomInset)
+    let topConstraint = toastView.topAnchor.constraint(equalTo: view.topAnchor, constant: 0)
+    let bottomConstraint = toastView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 0)
 
+    switch itemConfig.inset {
+    case let .top(inset):
+      topConstraint.constant = inset
+      topConstraint.priority = .defaultHigh
+      bottomConstraint.priority = .defaultLow
+    case let .bottom(inset):
+      bottomConstraint.constant = -inset
+      topConstraint.priority = .defaultLow
+      bottomConstraint.priority = .defaultHigh
+    }
+
+    topConstraint.isActive = true
     bottomConstraint.isActive = true
 
     toastView.alpha = 0
@@ -161,8 +203,10 @@ class ButterViewController: UIViewController {
 
     currentItem = Item(
       toastView: toastView,
+      edge: toast.edge,
       config: itemConfig,
       dismissDispatchWorkItem: makeDismissDispatchWorkItem(for: toast),
+      topConstraint: topConstraint,
       bottomConstraint: bottomConstraint)
   }
 
@@ -208,15 +252,17 @@ class ButterViewController: UIViewController {
     })
   }
 
-  private func itemConfig() -> ItemConfig {
+  private func itemConfig(edge: Edge) -> ItemConfig {
     let interfaceOrientation = self.windowSceneInterfaceOrientation
 
-    guard let rootViewController = self.rootViewController else {
+    guard let mainRootViewController = self.mainRootViewController else {
       return .init(
-        bottomInset: Self.bottomInset, userInterfaceStyle: .unspecified, interfaceOrientation: interfaceOrientation)
+        inset: .init(Self.additionalInset, edge: edge),
+        userInterfaceStyle: .unspecified,
+        interfaceOrientation: interfaceOrientation)
     }
 
-    let topViewController = rootViewController.topViewController { viewController in
+    let topViewController = mainRootViewController.topViewController { viewController in
       if viewController.isModalInPresentation {
         let modalPresentationStyle = viewController.modalPresentationStyle
 
@@ -236,14 +282,16 @@ class ButterViewController: UIViewController {
       return true
     }
 
+    let inset = topViewController.inset(edge: edge)
+
     return .init(
-      bottomInset: topViewController.bottomInset() + Self.bottomInset,
+      inset: .init(inset + Self.additionalInset, edge: edge),
       userInterfaceStyle: topViewController.overrideUserInterfaceStyle,
       interfaceOrientation: interfaceOrientation)
   }
 
   private var windowSceneInterfaceOrientation: UIInterfaceOrientation {
-    view.window?.windowScene?.interfaceOrientation ?? .portrait
+    windowScene?.interfaceOrientation ?? .unknown
   }
 
   private func makeDismissDispatchWorkItem(for toast: Toast) -> DispatchWorkItem? {
