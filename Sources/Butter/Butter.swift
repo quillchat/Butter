@@ -79,6 +79,8 @@ public class Butter {
     window.rootViewController = butterViewController
     window.makeKeyAndVisible()
 
+    windowScene.windows.first?.makeKey()
+
     return .init(window: window, butterViewController: butterViewController)
   }
 
