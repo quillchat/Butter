@@ -7,6 +7,7 @@ extension ButterViewController {
     var edge: Edge
     var config: ItemConfig
     var dismissDispatchWorkItem: DispatchWorkItem?
+    var fadeOutAnimator: UIViewPropertyAnimator?
     var topConstraint: NSLayoutConstraint
     var bottomConstraint: NSLayoutConstraint
     var onTap: (() -> Void)?
@@ -106,8 +107,9 @@ class ButterViewController: UIViewController {
   func enqueue(_ toast: Toast) {
     // Replace the current toast if necessary.
     if var currentItem = currentItem, currentItem.toastView.toast?.id == toast.id {
-      // It might be fading out.
       currentItem.toastView.layer.removeAllAnimations()
+      currentItem.fadeOutAnimator?.stopAnimation(true)
+      currentItem.fadeOutAnimator = nil
       currentItem.toastView.alpha = 1
 
       currentItem.toastView.toast = toast
@@ -227,27 +229,31 @@ class ButterViewController: UIViewController {
   }
 
   func dismissCurrentToastViewIfNeeded() {
-    guard let currentItem = self.currentItem else { return }
+    guard currentItem != nil else { return }
 
-    // Remove animations in case it was still appearing.
-    currentItem.toastView.layer.removeAllAnimations()
-    currentItem.dismissDispatchWorkItem?.cancel()
+    // Remove animations in case it was still appearing or disappearing.
+    currentItem?.toastView.layer.removeAllAnimations()
+    currentItem?.fadeOutAnimator?.stopAnimation(true)
+    currentItem?.fadeOutAnimator = nil
+    currentItem?.dismissDispatchWorkItem?.cancel()
 
     doDismissCurrentToastView()
   }
 
   private func doDismissCurrentToastView() {
-    guard let currentItem = self.currentItem else { fatalError() }
+    guard let currentItem = self.currentItem else {
+      print("Butter attempted to dismiss a toast when one wasn't current!")
+      return
+    }
 
     currentItem.toastView.isUserInteractionEnabled = false
 
-    UIView.animate(withDuration: Self.fadeDuration, animations: {
-      currentItem.toastView.alpha = 0
-    }, completion: { [weak self] isFinished in
-      guard let self = self else { return }
+    let fadeOutAnimator =
+      UIViewPropertyAnimator.runningPropertyAnimator(withDuration: Self.fadeDuration, delay: 0, options: []) {
 
-      // The toast may been replaced while it was fading out.
-      guard isFinished else { return }
+      currentItem.toastView.alpha = 0
+    } completion: { finalPosition in
+      guard finalPosition == .end else { return }
 
       self.currentItem = nil
 
@@ -256,7 +262,9 @@ class ButterViewController: UIViewController {
       if !self.queue.isEmpty {
         self.dequeue()
       }
-    })
+    }
+
+    self.currentItem?.fadeOutAnimator = fadeOutAnimator
   }
 
   private func itemConfig(edge: Edge) -> ItemConfig {
@@ -305,9 +313,8 @@ class ButterViewController: UIViewController {
     guard let duration = toast.duration else { return nil }
 
     let dispatchWorkItem = DispatchWorkItem { [weak self] in
-      guard let weakSelf = self else { return }
-
-      weakSelf.doDismissCurrentToastView()
+      guard let self = self else { return }
+      self.doDismissCurrentToastView()
     }
 
     let deadline: DispatchTime = .now() + .milliseconds(Int(duration) * 1000)
