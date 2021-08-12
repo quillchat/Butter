@@ -5,12 +5,16 @@ class ToastView: UIView {
   static let minimumWidth: CGFloat = 194
   static let height: CGFloat = 50
 
+  /// The width and height of the image.
+  static let imageSize: CGFloat = 24
+
   private let contentView = UIView()
   private var visualEffectView: UIVisualEffectView!
   private let titleLabel = UILabel()
   private let subtitleLabel = UILabel()
   private let activityIndicatorView = UIActivityIndicatorView(style: .medium)
   private let circularProgressView = CircularProgressView()
+  private let imageView = UIImageView()
   private var tapGestureRecognizer: UITapGestureRecognizer!
   private var leadingItemStackView = UIStackView()
 
@@ -60,10 +64,12 @@ class ToastView: UIView {
       case .standard:
         activityIndicatorView.isHidden = true
         circularProgressView.isHidden = true
+        imageView.isHidden = true
       case .indeterminate:
         activityIndicatorView.isHidden = false
         activityIndicatorView.startAnimating()
         circularProgressView.isHidden = true
+        imageView.isHidden = true
       case let .progress(progress, tintColor):
         circularProgressView.tintColor = tintColor
         circularProgressView.onFinished = { [weak self] in
@@ -73,6 +79,14 @@ class ToastView: UIView {
         activityIndicatorView.isHidden = true
         circularProgressView.isHidden = false
         circularProgressView.observedProgress = progress
+        imageView.isHidden = true
+      case let .image(image, shouldMaskToCircle):
+        activityIndicatorView.isHidden = true
+        circularProgressView.isHidden = true
+        imageView.isHidden = false
+
+        imageView.image = image
+        imageView.layer.cornerRadius = shouldMaskToCircle ? Self.imageSize / 2.0 : 0
       }
     }
   }
@@ -126,6 +140,7 @@ class ToastView: UIView {
 
     leadingItemStackView.addArrangedSubview(activityIndicatorView)
     leadingItemStackView.addArrangedSubview(circularProgressView)
+    leadingItemStackView.addArrangedSubview(imageView)
 
     visualEffectView.translatesAutoresizingMaskIntoConstraints = false
     visualEffectView.constrainEdgesEqualToSuperview()
@@ -156,6 +171,11 @@ class ToastView: UIView {
     NSLayoutConstraint.activate([
       leadingItemStackView.centerXAnchor.constraint(equalTo: contentView.leftAnchor, constant: Self.height / 2),
       leadingItemStackView.centerYAnchor.constraint(equalTo: contentView.topAnchor, constant: Self.height / 2)
+    ])
+
+    NSLayoutConstraint.activate([
+      imageView.widthAnchor.constraint(equalToConstant: Self.imageSize),
+      imageView.heightAnchor.constraint(equalToConstant: Self.imageSize)
     ])
 
     titleLabel.textColor = .label
