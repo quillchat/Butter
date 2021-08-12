@@ -4,9 +4,10 @@ An iOS toast framework.
 
 ## Styles
 
-Toasts come in three styles:
+Toasts come in four styles:
 
 * Standard
+* Image
 * Indeterminate
 * Progress
 
@@ -22,6 +23,23 @@ To enqueue a standard toast with a subtitle:
 
 ```swift
 Butter.enqueue(.init(title: "This is a toast", subtitle: "Hello"))
+```
+
+### Image
+
+To enqueue a image toast:
+
+```swift
+let image: UIImage = someUIImage()
+Butter.enqueue(.init(title: "An image!", style: .image(image)))
+```
+
+By default, the image is masked to a circle with a radius of 12pt. This can be disabled:
+
+```swift
+Butter.enqueue(.init(
+  title: "An unmasked image!", 
+  style: .image(image, shouldMaskToCircle: false)))
 ```
 
 ### Indeterminate

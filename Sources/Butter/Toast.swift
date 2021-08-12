@@ -15,6 +15,9 @@ public enum Style: Hashable {
   /// A toast that is automatically dismissed after a short period of time.
   case standard
 
+  /// A toast that includes an image and is automatically dismissed after a short period of time.
+  case image(UIImage, shouldMaskToCircle: Bool = true)
+
   /// A toast that includes an indeterminate progress indicator. This toast is not automatically dismissed.
   case indeterminate
 
@@ -86,11 +89,11 @@ public struct Toast: Identifiable {
 
   /// Indicates whether the toast should be dismissed when tapped.
   ///
-  /// Returns `true` for `.standard` toasts. Returns `false` for `.indeterminate` toasts. Returns `true` for `.progress`
-  /// toasts if the progress `isFinished`, false otherwise.
+  /// Returns `true` for `.standard` and `.image` toasts. Returns `false` for `.indeterminate` toasts. Returns `true`
+  /// for `.progress` toasts if the progress `isFinished`, false otherwise.
   public var shouldDismissWhenTapped: Bool {
     switch style {
-    case .standard:
+    case .standard, .image:
       return true
     case .indeterminate:
       return false
@@ -103,7 +106,7 @@ public struct Toast: Identifiable {
   /// automatically dismissed.
   public var duration: TimeInterval? {
     switch style {
-    case .standard:
+    case .standard, .image:
       return Self.duration
     case .indeterminate:
       return nil
