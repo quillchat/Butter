@@ -8,6 +8,7 @@ extension Butter {
   }
 }
 
+@available(iOSApplicationExtension, unavailable)
 public class Butter {
   private static var instanceByScene = [UIWindowScene: Instance]()
 
