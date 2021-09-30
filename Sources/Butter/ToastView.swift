@@ -80,12 +80,13 @@ class ToastView: UIView {
         circularProgressView.isHidden = false
         circularProgressView.observedProgress = progress
         imageView.isHidden = true
-      case let .image(image, shouldMaskToCircle):
+      case let .image(image, shouldMaskToCircle, shouldScaleToFit):
         activityIndicatorView.isHidden = true
         circularProgressView.isHidden = true
         imageView.isHidden = false
 
         imageView.image = image
+        imageView.contentMode = shouldScaleToFit ? .scaleAspectFit : .center
         imageView.layer.cornerRadius = shouldMaskToCircle ? Self.imageSize / 2.0 : 0
       }
     }
