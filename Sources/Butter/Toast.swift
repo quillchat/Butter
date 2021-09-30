@@ -16,7 +16,7 @@ public enum Style: Hashable {
   case standard
 
   /// A toast that includes an image and is automatically dismissed after a short period of time.
-  case image(UIImage, shouldMaskToCircle: Bool = true)
+  case image(UIImage, shouldMaskToCircle: Bool = true, shouldScaleToFit: Bool = true)
 
   /// A toast that includes an indeterminate progress indicator. This toast is not automatically dismissed.
   case indeterminate
